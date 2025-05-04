@@ -1,27 +1,13 @@
 <?php
-$root = 'C:/xampp/htdocs/xvwa';
-$tmp  = sys_get_temp_dir() . '/all_xvwa.zip';
+$root   = 'C:/xampp/htdocs/xvwa';
+$tmpTar = sys_get_temp_dir() . '/all_xvwa.tar';
 
-$zip = new ZipArchive();
-if ($zip->open($tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+try {
+    $phar = new PharData($tmpTar);
+    $phar->buildFromDirectory($root);
+    echo base64_encode(file_get_contents($tmpTar));
+    unlink($tmpTar);
+} catch (Exception $e) {
     http_response_code(500);
-    exit("ZIP creation failed\n");
+    exit("PharData failed: " . $e->getMessage());
 }
-
-$it = new RecursiveIteratorIterator(
-    new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
-    RecursiveIteratorIterator::LEAVES_ONLY
-);
-
-foreach ($it as $file) {
-    // add only files, skip directories
-    $filePath     = $file->getRealPath();
-    $relativePath = substr($filePath, strlen($root) + 1);
-    $zip->addFile($filePath, $relativePath);
-}
-
-$zip->close();
-
-// emit base64 of the ZIP and clean up
-echo base64_encode(file_get_contents($tmp));
-unlink($tmp);
